@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Matcher</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(to right, pink, purple);
+      color: white;
+    }
+    .container {
+      text-align: center;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .card {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      font-size: 30px;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .hidden {
+      background: rgba(255, 255, 255, 0.1);
+      color: transparent;
+    }
+    .controls button {
+      background: rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .controls button:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Memory Matcher</h1>
+    <div id="stats">
+      <p>Moves: <span id="moves">0</span></p>
+      <p>Best Score: <span id="bestScore">-</span></p>
+    </div>
+    <div id="game" class="grid"></div>
+    <div class="controls">
+      <button onclick="resetGame()">Reset Game</button>
+      <button onclick="toggleTheme()">Change Theme</button>
+    </div>
+  </div>
+
+  <script>
+    const cardThemes = [
+      {
+        emojis: ['🌈', '🚀', '🦄', '🍭', '🎨', '🍦', '🎉', '🌟'],
+        background: 'linear-gradient(to right, pink, purple)'
+      },
+      {
+        emojis: ['🍄', '🌲', '🌊', '🍃', '🦋', '🌺', '🌙', '☀️'],
+        background: 'linear-gradient(to right, green, blue)'
+      }
+    ];
+
+    let theme = cardThemes[0];
+    let cards = [];
+    let selectedCards = [];
+    let matchedPairs = [];
+    let moves = 0;
+    let bestScore = localStorage.getItem('bestScore') || Infinity;
+
+    const gameContainer = document.getElementById('game');
+    const movesDisplay = document.getElementById('moves');
+    const bestScoreDisplay = document.getElementById('bestScore');
+
+    function resetGame() {
+      cards = [...theme.emojis, ...theme.emojis]
+        .sort(() => Math.random() - 0.5)
+        .map((emoji, index) => ({ id: index, emoji, isFlipped: false }));
+
+      selectedCards = [];
+      matchedPairs = [];
+      moves = 0;
+      updateDisplay();
+      renderCards();
+    }
+
+    function toggleTheme() {
+      theme = theme === cardThemes[0] ? cardThemes[1] : cardThemes[0];
+      document.body.style.background = theme.background;
+      resetGame();
+    }
+
+    function renderCards() {
+      gameContainer.innerHTML = '';
+      cards.forEach(card => {
+        const cardElement = document.createElement('div');
+        cardElement.className = `card ${card.isFlipped || matchedPairs.includes(card.emoji) ? '' : 'hidden'}`;
+        cardElement.textContent = card.isFlipped || matchedPairs.includes(card.emoji) ? card.emoji : '?';
+        cardElement.onclick = () => handleCardClick(card);
+        gameContainer.appendChild(cardElement);
+      });
+    }
+
+    function handleCardClick(clickedCard) {
+      if (
+        matchedPairs.includes(clickedCard.emoji) ||
+        selectedCards.length === 2 ||
+        selectedCards.some(card => card.id === clickedCard.id)
+      ) return;
+
+      clickedCard.isFlipped = true;
+      selectedCards.push(clickedCard);
+      moves++;
+      updateDisplay();
+
+      if (selectedCards.length === 2) {
+        setTimeout(() => {
+          const [first, second] = selectedCards;
+          if (first.emoji === second.emoji) {
+            matchedPairs.push(first.emoji);
+          } else {
+            first.isFlipped = false;
+            second.isFlipped = false;
+          }
+          selectedCards = [];
+          renderCards();
+
+          if (matchedPairs.length === theme.emojis.length) {
+            handleGameWin();
+          }
+        }, 1000);
+      }
+      renderCards();
+    }
+
+    function handleGameWin() {
+      const newBestScore = Math.min(moves, bestScore);
+      bestScore = newBestScore;
+      localStorage.setItem('bestScore', newBestScore);
+      alert(`Congratulations! You won in ${moves} moves!`);
+      resetGame();
+    }
+
+    function updateDisplay() {
+      movesDisplay.textContent = moves;
+      bestScoreDisplay.textContent = bestScore === Infinity ? '-' : bestScore;
+    }
+
+    document.body.style.background = theme.background;
+    resetGame();
+  </script>
+</body>
+</html>
